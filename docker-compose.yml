@@ -1,0 +1,32 @@
+version: '3.4'
+
+services:
+    testcontainersapi:
+        container_name: testcontainers.api
+        image: ${DOCKER_REGISTRY-}testcontainersapi
+        build:
+          context: .
+          dockerfile: Dockerfile
+        depends_on:
+          - testmongodb
+        ports:
+          - 6080:80
+
+    testmongodb:
+        hostname: testmongodb
+        container_name: testmongodb
+        image: mongo:4.4.26
+        environment:
+            MONGO_REPLICA_SET_NAME: rs0
+        volumes:
+            - /data/db
+        expose:
+            - 27017
+        ports:
+            - "27017:27017"
+        restart: always
+        healthcheck:
+            test: test $$(echo "rs.initiate().ok || rs.slaveOk().ok || rs.status().ok" | mongo --quiet) -eq 1
+            interval: 10s
+            start_period: 30s
+        entrypoint: [ "/usr/bin/mongod", "--bind_ip_all", "--replSet", "rs0" ]
